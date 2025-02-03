@@ -27,3 +27,8 @@ gradle/wrapper/gradle-wrapper.jar
 .settings/
 .bloop/
 bin/
+
+# k8s secrets
+**/*secret*.yaml
+!**/*secret-sealed.yaml
+!**/*secrets-sealed.yaml
