@@ -36,11 +36,11 @@ import org.slf4j.LoggerFactory;
 
 public class RESTCatalogServer {
   private static final Logger LOG = LoggerFactory.getLogger(RESTCatalogServer.class);
-  private static final String CATALOG_ENV_PREFIX = "CATALOG_";
+  private static final String CATALOG_ENV_PREFIX = "CATALOG__";
 
   private RESTCatalogServer() {}
 
-  record CatalogContext(Catalog catalog, Map<String,String> configuration) { }
+  record CatalogContext(Catalog catalog, Map<String, String> configuration) {}
 
   private static CatalogContext backendCatalog() throws IOException {
     // Translate environment variable to catalog properties
@@ -52,8 +52,8 @@ public class RESTCatalogServer {
                     e ->
                         e.getKey()
                             .replaceFirst(CATALOG_ENV_PREFIX, "")
-                            .replaceAll("__", "-")
-                            .replaceAll("_", ".")
+                            .replaceAll("__", ".")
+                            .replaceAll("_", "-")
                             .toLowerCase(Locale.ROOT),
                     Map.Entry::getValue,
                     (m1, m2) -> {
@@ -81,7 +81,9 @@ public class RESTCatalogServer {
     }
 
     LOG.info("Creating catalog with properties: {}", catalogProperties);
-    return new CatalogContext(CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, new Configuration()), catalogProperties);
+    Catalog catalog =
+        CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, new Configuration());
+    return new CatalogContext(catalog, catalogProperties);
   }
 
   public static void main(String[] args) throws Exception {

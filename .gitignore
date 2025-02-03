@@ -21,3 +21,9 @@ dependencies.lock
 gradle/
 gradle/wrapper/gradle-wrapper.jar
 
+.classpath
+.metals/
+.project
+.settings/
+.bloop/
+bin/
