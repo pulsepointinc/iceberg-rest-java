@@ -15,13 +15,17 @@
 
 FROM azul/zulu-openjdk:17 as builder
 
-COPY . /app/
+COPY --link gradle /app/gradle
+COPY --link gradlew build.gradle settings.gradle /app
+COPY --link src /app/src
 WORKDIR /app/
 
 RUN --mount=type=cache,target=/root/.gradle \
   ./gradlew --no-daemon build shadowJar
 
 FROM azul/zulu-openjdk:17-jre-headless
+
+COPY --link refresh.sh /usr/lib/iceberg-rest/refresh.sh
 
 RUN \
     set -xeu && \
