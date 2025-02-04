@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -80,8 +81,16 @@ public class RESTCatalogServer {
       LOG.info("No warehouse location set.  Defaulting to temp location: {}", warehouseLocation);
     }
 
-    LOG.info("Creating catalog with properties: {}", catalogProperties);
+    String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    if (hadoopConfDir == null) {
+      throw new IllegalArgumentException("HADOOP_CONF_DIR is not set");
+    }
     Configuration hadoopConf = new Configuration();
+    hadoopConf.addResource(new Path(hadoopConfDir + "/core-site.xml"));
+    hadoopConf.addResource(new Path(hadoopConfDir + "/hdfs-site.xml"));
+    LOG.info("fs.defaultFS: {}", hadoopConf.get("fs.defaultFS"));
+
+    LOG.info("Creating catalog with properties: {}", catalogProperties);
     Catalog catalog =
         CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, hadoopConf);
     return new CatalogContext(catalog, catalogProperties);

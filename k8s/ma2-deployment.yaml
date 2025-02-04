@@ -33,7 +33,7 @@ spec:
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-5-ge2cd5b6-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-7-gfa11237-dirty
           livenessProbe:
             exec:
               command:
@@ -68,7 +68,7 @@ spec:
               value: /run/secrets/keytab/keytab
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-5-ge2cd5b6-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-7-gfa11237-dirty
           livenessProbe:
             exec:
               command:
