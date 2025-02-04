@@ -81,8 +81,9 @@ public class RESTCatalogServer {
     }
 
     LOG.info("Creating catalog with properties: {}", catalogProperties);
+    Configuration hadoopConf = new Configuration();
     Catalog catalog =
-        CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, new Configuration());
+        CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, hadoopConf);
     return new CatalogContext(catalog, catalogProperties);
   }
 

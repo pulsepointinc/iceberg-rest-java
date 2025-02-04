@@ -28,6 +28,8 @@ spec:
               value: /krb/krb5cc
             - name: REST_PORT
               value: "8181"
+            - name: HADOOP_CONF_DIR
+              value: /etc/hadoop/conf
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
@@ -55,6 +57,8 @@ spec:
           volumeMounts:
             - mountPath: /krb
               name: krb
+            - mountPath: /etc/hadoop/conf
+              name: hadoop-conf
         - command:
             - /home/iceberg/refresh.sh
           env:
@@ -99,6 +103,9 @@ spec:
             secretName: iceberg-keytab
         - name: krb
           emptyDir:
+        - name: hadoop-conf
+          configMap:
+            name: hadoop-conf
 ---
 apiVersion: v1
 kind: Service
