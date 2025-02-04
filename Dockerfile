@@ -33,13 +33,19 @@ FROM debian:12
 RUN --mount=type=cache,id=apt2,target=/var/cache/apt \
     apt-get update && \
     apt-get install --no-install-recommends -y \
+        krb5-user \
         openjdk-17-jre-headless \
-        krb5-user
+        python3 \
+        python3-venv
 
 RUN \
     set -xeu && \
     groupadd iceberg --gid 1000 && \
     useradd iceberg --uid 1000 --gid 1000 --create-home
+
+RUN python3 -m venv /home/iceberg/.venv \
+ && /home/iceberg/.venv/bin/python -m pip install pyiceberg \
+ && chown -R iceberg /home/iceberg/.venv
 
 COPY --from=builder --chown=iceberg:iceberg \
     /app/build/libs/iceberg-rest-image-all.jar /home/iceberg/iceberg-rest-image-all.jar

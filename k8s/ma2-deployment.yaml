@@ -31,11 +31,11 @@ spec:
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-4-g57f1c66-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-5-ge2cd5b6-dirty
           livenessProbe:
             exec:
               command:
-                - /app/bin/pyiceberg
+                - /home/iceberg/.venv/bin/pyiceberg
                 - --uri
                 - http://localhost:8181/
                 - list
@@ -64,7 +64,7 @@ spec:
               value: /run/secrets/keytab/keytab
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-4-g57f1c66-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-5-ge2cd5b6-dirty
           livenessProbe:
             exec:
               command:
