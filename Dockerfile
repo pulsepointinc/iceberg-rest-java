@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM azul/zulu-openjdk:17 as builder
+FROM debian:12 AS builder
+
+RUN --mount=type=cache,id=apt1,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+        openjdk-17-jdk
 
 COPY --link gradle /app/gradle
 COPY --link gradlew build.gradle settings.gradle /app
@@ -23,9 +28,15 @@ WORKDIR /app/
 RUN --mount=type=cache,target=/root/.gradle \
   ./gradlew --no-daemon build shadowJar
 
-FROM azul/zulu-openjdk:17-jre-headless
+FROM debian:12
 
-COPY --link refresh.sh /usr/lib/iceberg-rest/refresh.sh
+RUN --mount=type=cache,id=apt2,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+        openjdk-17-jre-headless \
+        krb5-user
+
+COPY --link refresh.sh /refresh.sh
 
 RUN \
     set -xeu && \
@@ -38,6 +49,6 @@ ENV REST_PORT=8181
 EXPOSE $REST_PORT
 
 USER iceberg:iceberg
-ENV LANG en_US.UTF-8
+ENV LANG=en_US.UTF-8
 WORKDIR /usr/lib/iceberg-rest
 CMD ["java", "-jar", "iceberg-rest-image-all.jar"]

@@ -10,6 +10,10 @@ IMAGE_NAME=forge/iceberg-rest-java/ma2
 build:
 	docker build -t "$(IMAGE_REGISTRY)/$(IMAGE_NAME):$(VERSION)" .
 
+.PHONY: bash
+bash:
+	docker run -it "$(IMAGE_REGISTRY)/$(IMAGE_NAME):$(VERSION)" bash
+
 .PHONY: push
 push:
 	docker push "$(IMAGE_REGISTRY)/$(IMAGE_NAME):$(VERSION)"
