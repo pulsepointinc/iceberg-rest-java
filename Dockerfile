@@ -36,19 +36,21 @@ RUN --mount=type=cache,id=apt2,target=/var/cache/apt \
         openjdk-17-jre-headless \
         krb5-user
 
-COPY --link refresh.sh /refresh.sh
-
 RUN \
     set -xeu && \
     groupadd iceberg --gid 1000 && \
     useradd iceberg --uid 1000 --gid 1000 --create-home
 
-COPY --from=builder --chown=iceberg:iceberg /app/build/libs/iceberg-rest-image-all.jar /usr/lib/iceberg-rest/iceberg-rest-image-all.jar
+COPY --from=builder --chown=iceberg:iceberg \
+    /app/build/libs/iceberg-rest-image-all.jar /home/iceberg/iceberg-rest-image-all.jar
+
+COPY --link --chown=iceberg:iceberg \
+    refresh.sh /home/iceberg/refresh.sh
 
 ENV REST_PORT=8181
 EXPOSE $REST_PORT
 
 USER iceberg:iceberg
 ENV LANG=en_US.UTF-8
-WORKDIR /usr/lib/iceberg-rest
+WORKDIR /home/iceberg
 CMD ["java", "-jar", "iceberg-rest-image-all.jar"]

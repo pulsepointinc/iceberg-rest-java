@@ -31,7 +31,7 @@ spec:
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-3-g9399aaa-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-4-g57f1c66-dirty
           livenessProbe:
             exec:
               command:
@@ -56,7 +56,7 @@ spec:
             - mountPath: /krb
               name: krb
         - command:
-            - /refresh.sh
+            - /home/iceberg/refresh.sh
           env:
             - name: KRB5CCNAME
               value: /krb/krb5cc
@@ -64,7 +64,7 @@ spec:
               value: /run/secrets/keytab/keytab
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-3-g9399aaa-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-4-g57f1c66-dirty
           livenessProbe:
             exec:
               command:
