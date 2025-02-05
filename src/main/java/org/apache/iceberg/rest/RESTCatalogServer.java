@@ -17,10 +17,10 @@
 package org.apache.iceberg.rest;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -44,7 +44,7 @@ public class RESTCatalogServer {
 
   record CatalogContext(Catalog catalog, Map<String, String> configuration) {}
 
-  private static CatalogContext backendCatalog() throws IOException {
+  private static CatalogContext backendCatalog() throws Exception {
     // Translate environment variable to catalog properties
     Map<String, String> catalogProperties =
         System.getenv().entrySet().stream()
@@ -93,14 +93,35 @@ public class RESTCatalogServer {
     LOG.info(
         "hadoop.security.authentication: {}", hadoopConf.get("hadoop.security.authentication"));
 
-    UserGroupInformation.setConfiguration(hadoopConf);
-    UserGroupInformation.loginUserFromSubject(null); // Uses ticket cache
-    LOG.info("Authenticated as: " + UserGroupInformation.getCurrentUser());
+    authenticate(hadoopConf);
 
     LOG.info("Creating catalog with properties: {}", catalogProperties);
     Catalog catalog =
         CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, hadoopConf);
     return new CatalogContext(catalog, catalogProperties);
+  }
+
+  static void authenticate(Configuration hadoopConf) throws Exception {
+    String ticketCachePath = System.getenv("KRB5CCNAME");
+    if (ticketCachePath == null) {
+      throw new IllegalStateException("KRB5CCNAME environment variable is not set!");
+    }
+
+    File ticketCache = new File(ticketCachePath);
+    int retries = 30;
+    while (!ticketCache.exists() && retries > 0) {
+      System.out.println("Waiting for Kerberos ticket cache to be created...");
+      TimeUnit.SECONDS.sleep(2);
+      retries--;
+    }
+
+    if (!ticketCache.exists()) {
+      throw new IllegalStateException("Kerberos ticket cache not found! Authentication will fail.");
+    }
+
+    UserGroupInformation.setConfiguration(hadoopConf);
+    UserGroupInformation.loginUserFromSubject(null); // Uses ticket cache
+    LOG.info("Authenticated as: " + UserGroupInformation.getCurrentUser());
   }
 
   public static void main(String[] args) throws Exception {
