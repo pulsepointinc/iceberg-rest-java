@@ -19,7 +19,7 @@ spec:
             - name: CATALOG__CATALOG_IMPL
               value: "org.apache.iceberg.jdbc.JdbcCatalog"
             - name: CATALOG__WAREHOUSE
-              value: hdfs://ma2-datalake/alluxio/iceberg
+              value: hdfs://ma2-datalake/alluxio/meta/iceberg
             - name: CATALOG__URI
               value: jdbc:mysql://iceberg-mysql:3306/iceberg
             - name: KRB_PRINCIPAL
@@ -33,7 +33,7 @@ spec:
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-9-g29cf40e-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-11-g5657a2c-dirty
           livenessProbe:
             exec:
               command:
@@ -74,7 +74,7 @@ spec:
               value: /run/secrets/keytab/keytab
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-9-g29cf40e-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-11-g5657a2c-dirty
           livenessProbe:
             exec:
               command:

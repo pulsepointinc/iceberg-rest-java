@@ -110,7 +110,7 @@ public class RESTCatalogServer {
     File ticketCache = new File(ticketCachePath);
     int retries = 30;
     while (!ticketCache.exists() && retries > 0) {
-      System.out.println("Waiting for Kerberos ticket cache to be created...");
+      LOG.info("Waiting for Kerberos ticket cache to be created...");
       TimeUnit.SECONDS.sleep(2);
       retries--;
     }
