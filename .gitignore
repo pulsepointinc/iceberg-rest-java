@@ -21,3 +21,14 @@ dependencies.lock
 gradle/
 gradle/wrapper/gradle-wrapper.jar
 
+.classpath
+.metals/
+.project
+.settings/
+.bloop/
+bin/
+
+# k8s secrets
+**/*secret*.yaml
+!**/*secret-sealed.yaml
+!**/*secrets-sealed.yaml

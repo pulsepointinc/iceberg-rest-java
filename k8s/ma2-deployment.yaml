@@ -1,0 +1,152 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iceberg-rest-java
+  namespace: dpd-iceberg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iceberg-rest-java
+  template:
+    metadata:
+      labels:
+        app: iceberg-rest-java
+    spec:
+      containers:
+        - env:
+            - name: CATALOG__CATALOG_IMPL
+              value: "org.apache.iceberg.jdbc.JdbcCatalog"
+            - name: CATALOG__WAREHOUSE
+              value: hdfs://ma2-datalake/alluxio/meta/iceberg
+            - name: CATALOG__URI
+              value: jdbc:mysql://iceberg-mysql:3306/iceberg
+            - name: KRB_PRINCIPAL
+              value: iceberg@PULSE.PROD
+            - name: KRB5CCNAME
+              value: /krb/krb5cc
+            - name: REST_PORT
+              value: "8181"
+            - name: HADOOP_CONF_DIR
+              value: /etc/hadoop/conf
+          envFrom:
+            - secretRef:
+                name: iceberg-rest-java-env
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.2.0
+          livenessProbe:
+            exec:
+              command:
+                - /home/iceberg/.venv/bin/pyiceberg
+                - --uri
+                - http://localhost:8181/
+                - list
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+          name: iceberg-rest-java
+          ports:
+            - containerPort: 8181
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: 500m
+              memory: 4Gi
+          volumeMounts:
+            - mountPath: /etc/krb5.conf
+              name: krb5-conf
+              subPath: krb5.conf
+              readOnly: true
+            - mountPath: /krb
+              name: krb
+              readOnly: true
+            - mountPath: /etc/hadoop/conf
+              name: hadoop-conf
+              readOnly: true
+        - command:
+            - /home/iceberg/refresh.sh
+          env:
+            - name: KRB5CCNAME
+              value: /krb/krb5cc
+            - name: KRB5_KTNAME
+              value: /run/secrets/keytab/keytab
+            - name: KRB_PRINCIPAL
+              value: iceberg@PULSE.PROD
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.2.0
+          livenessProbe:
+            exec:
+              command:
+                - /usr/bin/klist
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          name: kinit
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /etc/krb5.conf
+              name: krb5-conf
+              subPath: krb5.conf
+              readOnly: true
+            - mountPath: /run/secrets/keytab
+              name: keytab
+              readOnly: true
+            - mountPath: /krb
+              name: krb
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: iceberg-rest-java
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+      volumes:
+        - name: keytab
+          secret:
+            secretName: iceberg-keytab
+        - name: krb5-conf
+          configMap:
+            name: krb5-conf
+        - name: krb
+          emptyDir:
+        - name: hadoop-conf
+          configMap:
+            name: hadoop-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iceberg-rest-java
+  namespace: dpd-iceberg
+spec:
+  selector:
+    app: iceberg-rest-java
+  ports:
+    - port: 8181
+      targetPort: 8181
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iceberg-rest-java
+  namespace: dpd-iceberg
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: iceberg-rest-java.k8s-dm-ma2-prod.pulse.prod
+      http:
+        paths:
+          - backend:
+              service:
+                name: iceberg-rest-java
+                port:
+                  number: 8181
+            path: /
+            pathType: Prefix

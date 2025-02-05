@@ -17,12 +17,14 @@
 package org.apache.iceberg.rest;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -36,13 +38,13 @@ import org.slf4j.LoggerFactory;
 
 public class RESTCatalogServer {
   private static final Logger LOG = LoggerFactory.getLogger(RESTCatalogServer.class);
-  private static final String CATALOG_ENV_PREFIX = "CATALOG_";
+  private static final String CATALOG_ENV_PREFIX = "CATALOG__";
 
   private RESTCatalogServer() {}
 
-  record CatalogContext(Catalog catalog, Map<String,String> configuration) { }
+  record CatalogContext(Catalog catalog, Map<String, String> configuration) {}
 
-  private static CatalogContext backendCatalog() throws IOException {
+  private static CatalogContext backendCatalog() throws Exception {
     // Translate environment variable to catalog properties
     Map<String, String> catalogProperties =
         System.getenv().entrySet().stream()
@@ -52,8 +54,8 @@ public class RESTCatalogServer {
                     e ->
                         e.getKey()
                             .replaceFirst(CATALOG_ENV_PREFIX, "")
-                            .replaceAll("__", "-")
-                            .replaceAll("_", ".")
+                            .replaceAll("__", ".")
+                            .replaceAll("_", "-")
                             .toLowerCase(Locale.ROOT),
                     Map.Entry::getValue,
                     (m1, m2) -> {
@@ -80,8 +82,46 @@ public class RESTCatalogServer {
       LOG.info("No warehouse location set.  Defaulting to temp location: {}", warehouseLocation);
     }
 
+    String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
+    if (hadoopConfDir == null) {
+      throw new IllegalArgumentException("HADOOP_CONF_DIR is not set");
+    }
+    Configuration hadoopConf = new Configuration();
+    hadoopConf.addResource(new Path(hadoopConfDir + "/core-site.xml"));
+    hadoopConf.addResource(new Path(hadoopConfDir + "/hdfs-site.xml"));
+    LOG.info("fs.defaultFS: {}", hadoopConf.get("fs.defaultFS"));
+    LOG.info(
+        "hadoop.security.authentication: {}", hadoopConf.get("hadoop.security.authentication"));
+
+    authenticate(hadoopConf);
+
     LOG.info("Creating catalog with properties: {}", catalogProperties);
-    return new CatalogContext(CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, new Configuration()), catalogProperties);
+    Catalog catalog =
+        CatalogUtil.buildIcebergCatalog("rest_backend", catalogProperties, hadoopConf);
+    return new CatalogContext(catalog, catalogProperties);
+  }
+
+  static void authenticate(Configuration hadoopConf) throws Exception {
+    String ticketCachePath = System.getenv("KRB5CCNAME");
+    if (ticketCachePath == null) {
+      throw new IllegalStateException("KRB5CCNAME environment variable is not set!");
+    }
+
+    File ticketCache = new File(ticketCachePath);
+    int retries = 30;
+    while (!ticketCache.exists() && retries > 0) {
+      LOG.info("Waiting for Kerberos ticket cache to be created...");
+      TimeUnit.SECONDS.sleep(2);
+      retries--;
+    }
+
+    if (!ticketCache.exists()) {
+      throw new IllegalStateException("Kerberos ticket cache not found! Authentication will fail.");
+    }
+
+    UserGroupInformation.setConfiguration(hadoopConf);
+    UserGroupInformation.loginUserFromSubject(null); // Uses ticket cache
+    LOG.info("Authenticated as: " + UserGroupInformation.getCurrentUser());
   }
 
   public static void main(String[] args) throws Exception {

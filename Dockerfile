@@ -13,30 +13,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM azul/zulu-openjdk:17 as builder
+FROM debian:12 AS builder
 
-COPY . /app/
+RUN --mount=type=cache,id=apt1,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+        openjdk-17-jdk
+
+COPY --link gradle /app/gradle
+COPY --link gradlew build.gradle settings.gradle /app
+COPY --link src /app/src
 WORKDIR /app/
 
-RUN ["./gradlew", "build", "shadowJar"]
+RUN --mount=type=cache,target=/root/.gradle \
+  ./gradlew --no-daemon build shadowJar
 
-FROM azul/zulu-openjdk:17-jre-headless
+FROM debian:12
+
+RUN --mount=type=cache,id=apt2,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install --no-install-recommends -y \
+        krb5-user \
+        openjdk-17-jre-headless \
+        python3 \
+        python3-venv
 
 RUN \
     set -xeu && \
     groupadd iceberg --gid 1000 && \
     useradd iceberg --uid 1000 --gid 1000 --create-home
 
-COPY --from=builder --chown=iceberg:iceberg /app/build/libs/iceberg-rest-image-all.jar /usr/lib/iceberg-rest/iceberg-rest-image-all.jar
+RUN python3 -m venv /home/iceberg/.venv \
+ && /home/iceberg/.venv/bin/python -m pip install pyiceberg \
+ && chown -R iceberg /home/iceberg/.venv
 
-ENV CATALOG_CATALOG__IMPL=org.apache.iceberg.jdbc.JdbcCatalog
-ENV CATALOG_URI=jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory
-ENV CATALOG_JDBC_USER=user
-ENV CATALOG_JDBC_PASSWORD=password
+COPY --from=builder --chown=iceberg:iceberg \
+    /app/build/libs/iceberg-rest-image-all.jar /home/iceberg/iceberg-rest-image-all.jar
+
+COPY --link --chown=iceberg:iceberg \
+    refresh.sh /home/iceberg/refresh.sh
+
 ENV REST_PORT=8181
-
 EXPOSE $REST_PORT
+
 USER iceberg:iceberg
-ENV LANG en_US.UTF-8
-WORKDIR /usr/lib/iceberg-rest
+ENV LANG=en_US.UTF-8
+WORKDIR /home/iceberg
 CMD ["java", "-jar", "iceberg-rest-image-all.jar"]
