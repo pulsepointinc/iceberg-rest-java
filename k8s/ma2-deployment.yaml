@@ -33,7 +33,7 @@ spec:
           envFrom:
             - secretRef:
                 name: iceberg-rest-java-env
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-7-gfa11237-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-8-g1342a21-dirty
           livenessProbe:
             exec:
               command:
@@ -55,6 +55,10 @@ spec:
               cpu: 500m
               memory: 4Gi
           volumeMounts:
+            - mountPath: /etc/krb5.conf
+              name: krb5-conf
+              subPath: krb5.conf
+              readOnly: true
             - mountPath: /krb
               name: krb
             - mountPath: /etc/hadoop/conf
@@ -68,7 +72,7 @@ spec:
               value: /run/secrets/keytab/keytab
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
-          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-7-gfa11237-dirty
+          image: registry.pulsepoint.com/forge/iceberg-rest-java/ma2:0.1.0-8-g1342a21-dirty
           livenessProbe:
             exec:
               command:
@@ -101,6 +105,9 @@ spec:
         - name: keytab
           secret:
             secretName: iceberg-keytab
+        - name: krb5-conf
+          configMap:
+            name: krb5-conf
         - name: krb
           emptyDir:
         - name: hadoop-conf

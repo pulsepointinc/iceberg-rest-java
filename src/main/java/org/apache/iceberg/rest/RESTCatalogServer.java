@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
@@ -89,6 +90,12 @@ public class RESTCatalogServer {
     hadoopConf.addResource(new Path(hadoopConfDir + "/core-site.xml"));
     hadoopConf.addResource(new Path(hadoopConfDir + "/hdfs-site.xml"));
     LOG.info("fs.defaultFS: {}", hadoopConf.get("fs.defaultFS"));
+    LOG.info(
+        "hadoop.security.authentication: {}", hadoopConf.get("hadoop.security.authentication"));
+
+    UserGroupInformation.setConfiguration(hadoopConf);
+    UserGroupInformation.loginUserFromSubject(null); // Uses ticket cache
+    LOG.info("Authenticated as: " + UserGroupInformation.getCurrentUser());
 
     LOG.info("Creating catalog with properties: {}", catalogProperties);
     Catalog catalog =
