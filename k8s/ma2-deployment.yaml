@@ -21,7 +21,7 @@ spec:
             - name: CATALOG__WAREHOUSE
               value: hdfs://ma2-datalake/alluxio/meta/iceberg
             - name: CATALOG__URI
-              value: jdbc:mysql://iceberg-mysql:3306/iceberg
+              value: jdbc:mysql://ma2-pxc-lb01.pulse.prod:3306,ma2-pxc-lb02.pulse.prod:3306/iceberg_db
             - name: KRB_PRINCIPAL
               value: iceberg@PULSE.PROD
             - name: KRB5CCNAME
