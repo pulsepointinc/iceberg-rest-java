@@ -1,3 +1,5 @@
+The project was moved to https://github.com/pulsepointinc/iceberg-rest-catalog
+
 # Iceberg rest image
 
 For converting different catalog implementations into a rest one.
